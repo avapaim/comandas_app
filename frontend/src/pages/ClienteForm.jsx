@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import PageLayout from "../components/common/PageLayout";
 import useValidationRules from "../hooks/useValidationRules";
 import useMasks from "../hooks/useMasks";
+import showSnackbar from "../utils/snackbar";
 
 const ClienteForm = () => {
   const {
@@ -20,6 +21,7 @@ const ClienteForm = () => {
 
   const onSubmit = (data) => {
     console.log("Cliente:", data);
+    showSnackbar("Cliente cadastrado com sucesso!", "success");
   };
 
   const handleCancel = () => {
@@ -29,7 +31,6 @@ const ClienteForm = () => {
   return (
     <PageLayout title="Cadastro de Cliente">
       <Box component="form" onSubmit={handleSubmit(onSubmit)}>
-
         <Controller
           name="nome"
           control={control}
