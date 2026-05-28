@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import {
   Table,
   TableBody,
@@ -12,6 +14,8 @@ import {
   Typography,
   Box,
   Divider,
+  Chip,
+  CircularProgress,
 } from "@mui/material";
 
 import { FiberNew } from "@mui/icons-material";
@@ -19,30 +23,49 @@ import { useNavigate } from "react-router-dom";
 
 import PageLayout from "../components/common/PageLayout";
 import ActionButtons from "../components/common/ActionButtons";
+import Pagination from "../components/common/Pagination";
+import { getGrupoInfo } from "../constants/userGroups";
+import useMasks from "../hooks/useMasks";
+import funcionarioService from "../services/funcionarioService";
+import showSnackbar from "../utils/snackbar";
 
 const FuncionarioList = () => {
   const navigate = useNavigate();
 
-  const funcionarios = [
-    {
-      id: 1,
-      nome: "Arthur Paim",
-      cpf: "000.000.000-00",
-      telefone: "(49) 99999-9999",
-      email: "arthur@email.com",
-      matricula: "001",
-      grupo: "Administrador",
-    },
-    {
-      id: 2,
-      nome: "José da Silva",
-      cpf: "111.111.111-11",
-      telefone: "(49) 98888-8888",
-      email: "jose@email.com",
-      matricula: "002",
-      grupo: "Garçom",
-    },
-  ];
+  const { applyCpfMask, applyPhoneMask } = useMasks();
+
+  const [funcionarios, setFuncionarios] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({
+    skip: 0,
+    limit: 3,
+    currentPage: 1,
+  });
+  const [hasItems, setHasItems] = useState(true);
+
+  const loadFuncionarios = async () => {
+    try {
+      setLoading(true);
+
+      const response = await funcionarioService.list({
+        skip: pagination.skip,
+        limit: pagination.limit,
+      });
+
+      const data = response.data || response;
+
+      setFuncionarios(data);
+      setHasItems(data && data.length > 0);
+    } catch (error) {
+      showSnackbar("Erro ao carregar funcionários", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFuncionarios();
+  }, [pagination.skip, pagination.limit]);
 
   const actions = (
     <Button
@@ -54,9 +77,47 @@ const FuncionarioList = () => {
     </Button>
   );
 
-  const handleView = (item) => console.log("Visualizar:", item);
-  const handleEdit = (item) => navigate(`/funcionario/${item.id}`);
-  const handleDelete = (item) => console.log("Excluir:", item);
+  const handleView = (item) => navigate(`/funcionario/view/${item.id}`);
+  const handleEdit = (item) => navigate(`/funcionario/edit/${item.id}`);
+
+  const handleDelete = async (item) => {
+    try {
+      await funcionarioService.delete(item.id);
+
+      showSnackbar("Funcionário excluído com sucesso!", "success");
+      loadFuncionarios();
+    } catch (error) {
+      showSnackbar("Erro ao excluir funcionário", "error");
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    const newSkip = (newPage - 1) * pagination.limit;
+
+    setPagination((prev) => ({
+      ...prev,
+      skip: newSkip,
+      currentPage: newPage,
+    }));
+  };
+
+  const handleItemsPerPageChange = (newLimit) => {
+    setPagination({
+      skip: 0,
+      limit: newLimit,
+      currentPage: 1,
+    });
+  };
+
+  if (loading) {
+    return (
+      <PageLayout title="Funcionários" actions={actions}>
+        <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+          <CircularProgress />
+        </Box>
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout title="Funcionários" actions={actions}>
@@ -81,11 +142,17 @@ const FuncionarioList = () => {
                 <TableRow key={funcionario.id} hover>
                   <TableCell>{funcionario.id}</TableCell>
                   <TableCell>{funcionario.nome}</TableCell>
-                  <TableCell>{funcionario.cpf}</TableCell>
-                  <TableCell>{funcionario.telefone}</TableCell>
+                  <TableCell>{applyCpfMask(funcionario.cpf)}</TableCell>
+                  <TableCell>{applyPhoneMask(funcionario.telefone)}</TableCell>
                   <TableCell>{funcionario.email}</TableCell>
                   <TableCell>{funcionario.matricula}</TableCell>
-                  <TableCell>{funcionario.grupo}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={getGrupoInfo(funcionario.grupo).label}
+                      color={getGrupoInfo(funcionario.grupo).color}
+                      size="small"
+                    />
+                  </TableCell>
                   <TableCell>
                     <ActionButtons
                       item={funcionario}
@@ -116,11 +183,12 @@ const FuncionarioList = () => {
               <Divider sx={{ my: 2 }} />
 
               <Typography variant="body2">
-                <strong>CPF/Login:</strong> {funcionario.cpf}
+                <strong>CPF/Login:</strong> {applyCpfMask(funcionario.cpf)}
               </Typography>
 
               <Typography variant="body2">
-                <strong>Telefone:</strong> {funcionario.telefone}
+                <strong>Telefone:</strong>{" "}
+                {applyPhoneMask(funcionario.telefone)}
               </Typography>
 
               <Typography variant="body2">
@@ -131,9 +199,13 @@ const FuncionarioList = () => {
                 <strong>Matrícula:</strong> {funcionario.matricula}
               </Typography>
 
-              <Typography variant="body2">
-                <strong>Grupo:</strong> {funcionario.grupo}
-              </Typography>
+              <Box sx={{ mt: 1 }}>
+                <Chip
+                  label={getGrupoInfo(funcionario.grupo).label}
+                  color={getGrupoInfo(funcionario.grupo).color}
+                  size="small"
+                />
+              </Box>
 
               <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
                 <ActionButtons
@@ -147,6 +219,15 @@ const FuncionarioList = () => {
           </Card>
         ))}
       </Box>
+
+      <Pagination
+        currentPage={pagination.currentPage}
+        itemsPerPage={pagination.limit}
+        onPageChange={handlePageChange}
+        onItemsPerPageChange={handleItemsPerPageChange}
+        loading={loading}
+        hasItems={hasItems}
+      />
     </PageLayout>
   );
 };

@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -13,40 +15,103 @@ import {
   Box,
   Divider,
 } from "@mui/material";
-
 import { FiberNew } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
 
 import PageLayout from "../components/common/PageLayout";
 import ActionButtons from "../components/common/ActionButtons";
+import ProdutoFilters from "../components/common/ProdutoFilters";
+import Pagination from "../components/common/Pagination";
+import { produtoService } from "../services/produtoService";
+import showSnackbar from "../utils/snackbar";
+import showConfirm from "../utils/confirm";
 
+// Definição do componente ProdutoList
 function ProdutoList() {
+  // Hook de navegação
   const navigate = useNavigate();
 
-  const produtos = [
-    {
-      id: 1,
-      nome: "Hambúrguer Clássico",
-      descricao: "Pão, carne, alface, tomate, queijo",
-      valor_unitario: 25.9,
-      foto: "/src/assets/hero.png",
-    },
-    {
-      id: 2,
-      nome: "Batata Frita",
-      descricao: "Porção média de batata crocante",
-      valor_unitario: 12.5,
-      foto: "/src/assets/vite.svg",
-    },
-    {
-      id: 3,
-      nome: "Refrigerante",
-      descricao: "Lata 350ml",
-      valor_unitario: 8.0,
-      foto: "/src/assets/react.svg",
-    },
-  ];
+  // Estados do componente
+  const [produtos, setProdutos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({});
+  const [pagination, setPagination] = useState({
+    skip: 0,
+    limit: 3,
+    currentPage: 1,
+  });
+  const [hasItems, setHasItems] = useState(true);
 
+  // Funções de navegação
+  const handleView = (produto) => navigate(`/produto/view/${produto.id}`);
+  const handleEdit = (produto) => navigate(`/produto/edit/${produto.id}`);
+
+  // Funções de manipulação de filtros
+  const handleFilter = (newFilters) => {
+    setFilters(newFilters);
+    setPagination((prev) => ({
+      ...prev,
+      skip: 0,
+      currentPage: 1,
+    }));
+  };
+
+  const handleClearFilters = () => {
+    setFilters({});
+    setPagination((prev) => ({
+      ...prev,
+      skip: 0,
+      currentPage: 1,
+    }));
+  };
+
+  // Funções de manipulação de paginação
+  const handlePageChange = (newPage) => {
+    const newSkip = (newPage - 1) * pagination.limit;
+
+    setPagination((prev) => ({
+      ...prev,
+      skip: newSkip,
+      currentPage: newPage,
+    }));
+  };
+
+  const handleItemsPerPageChange = (newLimit) => {
+    setPagination((prev) => ({
+      ...prev,
+      limit: newLimit,
+      skip: 0,
+      currentPage: 1,
+    }));
+  };
+
+  // Função de exclusão com confirmação
+  const handleDelete = (produto) => {
+    showConfirm(
+      "Excluir Produto",
+      `Tem certeza que deseja excluir o produto "${produto.nome}"?`,
+      async () => {
+        try {
+          await produtoService.delete(produto.id);
+          showSnackbar("Produto excluído com sucesso!", "success");
+
+          // Recarregar lista após exclusão
+          const updatedProdutos = produtos.filter((p) => p.id !== produto.id);
+          setProdutos(updatedProdutos);
+        } catch (error) {
+          showSnackbar("Erro ao excluir produto", "error");
+        }
+      }
+    );
+  };
+
+  // Funções utilitárias
+  const formatCurrency = (value) =>
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
+
+  // Configuração de ações da página
   const actions = (
     <Button
       variant="contained"
@@ -59,29 +124,106 @@ function ProdutoList() {
     </Button>
   );
 
-  const formatCurrency = (value) =>
-    new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
+  // Efeito para carregar produtos
+  useEffect(() => {
+    const loadProdutos = async () => {
+      try {
+        setLoading(true);
 
-  const handleView = (produto) => console.log("Visualizar produto:", produto);
-  const handleEdit = (produto) => navigate(`/produto/${produto.id}`);
-  const handleDelete = (produto) => console.log("Excluir produto:", produto);
+        const params = {
+          skip: pagination.skip,
+          limit: pagination.limit,
+          ...filters,
+        };
+
+        const response = await produtoService.list(params);
+        const produtosData = response.data || response;
+
+        setProdutos(produtosData);
+        setHasItems(produtosData && produtosData.length > 0);
+      } catch (error) {
+        showSnackbar("Erro ao carregar produtos", "error");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProdutos();
+  }, [pagination.skip, pagination.limit, filters]);
 
   const columns = [
     { field: "id", headerName: "ID" },
+    { field: "foto", headerName: "Foto" },
     { field: "nome", headerName: "Nome" },
     { field: "descricao", headerName: "Descrição" },
     { field: "valor_unitario", headerName: "Valor Unitário" },
-    { field: "actions", headerName: "Ações" },
+    {
+      field: "actions",
+      headerName: "Ações",
+      renderCell: (params) => (
+        <ActionButtons
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          item={params.row || {}}
+        />
+      ),
+    },
   ];
 
+  // Renderização desktop: linha da tabela
   const renderDesktopRow = (produto) => (
     <TableRow key={produto.id} hover>
       {columns.map((column, index) => {
         if (column.field === "id") {
           return <TableCell key={index}>{produto.id}</TableCell>;
+        }
+
+        if (column.field === "foto") {
+          return (
+            <TableCell key={index}>
+              <Box
+                sx={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 1,
+                  overflow: "hidden",
+                  backgroundColor: "grey.100",
+                }}
+              >
+                {produto.foto ? (
+                  <img
+                    src={produto.foto}
+                    alt={produto.nome}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <Box
+                    sx={{
+                      width: "100%",
+                      height: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: "grey.200",
+                      color: "grey.500",
+                      fontSize: "8px",
+                      textAlign: "center",
+                    }}
+                  >
+                    Sem foto
+                  </Box>
+                )}
+              </Box>
+            </TableCell>
+          );
         }
 
         if (column.field === "nome") {
@@ -140,8 +282,9 @@ function ProdutoList() {
     </TableRow>
   );
 
+  // Renderização mobile: card
   const renderMobileCard = (produto) => (
-    <Card key={produto.id} sx={{ mb: 2 }}>
+    <Card key={produto.id} sx={{ mb: 2, elevation: 2 }}>
       <CardContent sx={{ p: 2 }}>
         <Box
           sx={{
@@ -161,15 +304,36 @@ function ProdutoList() {
                 backgroundColor: "grey.100",
               }}
             >
-              <img
-                src={produto.foto}
-                alt={produto.nome}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
+              {produto.foto ? (
+                <img
+                  src={produto.foto}
+                  alt={produto.nome}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                  onError={(e) => {
+                    e.target.style.display = "none";
+                  }}
+                />
+              ) : (
+                <Box
+                  sx={{
+                    width: "100%",
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "grey.200",
+                    color: "grey.500",
+                    fontSize: "10px",
+                    textAlign: "center",
+                  }}
+                >
+                  Sem foto
+                </Box>
+              )}
             </Box>
 
             <Box>
@@ -232,8 +396,17 @@ function ProdutoList() {
     </Card>
   );
 
+  // Renderização responsiva: desktop (tabela) e mobile (cards)
   return (
     <PageLayout title="Produtos" actions={actions}>
+      {/* Componente de Filtros */}
+      <ProdutoFilters
+        onFilter={handleFilter}
+        onClear={handleClearFilters}
+        filters={filters}
+      />
+
+      {/* Tabela Desktop */}
       <Box sx={{ display: { xs: "none", md: "block" } }}>
         <TableContainer component={Paper}>
           <Table>
@@ -241,7 +414,7 @@ function ProdutoList() {
               <TableRow>
                 {columns.map((column, index) => (
                   <TableCell key={index} sx={{ fontWeight: 600 }}>
-                    {column.headerName}
+                    {column.headerName || column.header}
                   </TableCell>
                 ))}
               </TableRow>
@@ -254,9 +427,20 @@ function ProdutoList() {
         </TableContainer>
       </Box>
 
+      {/* Cards Mobile */}
       <Box sx={{ display: { xs: "block", md: "none" } }}>
         {produtos.map((produto) => renderMobileCard(produto))}
       </Box>
+
+      {/* Componente de Paginação */}
+      <Pagination
+        currentPage={pagination.currentPage}
+        itemsPerPage={pagination.limit}
+        onPageChange={handlePageChange}
+        onItemsPerPageChange={handleItemsPerPageChange}
+        loading={loading}
+        hasItems={hasItems}
+      />
     </PageLayout>
   );
 }

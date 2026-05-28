@@ -1,7 +1,9 @@
 import { Menu, Typography, Box, Avatar, Chip } from '@mui/material';
 import { Email, Phone, Badge, AccountCircle, Work } from '@mui/icons-material';
+
 import { useAuth } from '../../context/AuthContext';
 import { getGrupoInfo } from '../../constants/userGroups';
+import perfil from '../../assets/perfil.jpg';
 
 const UserProfile = ({ anchorEl, onClose }) => {
   // Obtém o usuário do contexto de autenticação
@@ -23,8 +25,8 @@ const UserProfile = ({ anchorEl, onClose }) => {
           mt: 1.5,
 
           '& .MuiAvatar-root': {
-            width: 32,
-            height: 32,
+            width: 48,
+            height: 48,
             ml: -0.5,
             mr: 1,
           },
@@ -48,6 +50,7 @@ const UserProfile = ({ anchorEl, onClose }) => {
       <Box sx={{ p: 2, minWidth: 280 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
           <Avatar
+            src={perfil}
             sx={{
               width: 48,
               height: 48,

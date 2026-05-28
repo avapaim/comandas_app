@@ -30,11 +30,15 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useState } from 'react';
+
 import UserProfile from './UserProfile';
+
 import perfil from '../../assets/perfil.jpg';
+import { USER_GROUPS } from '../../constants/userGroups';
 
 const Navbar = () => {
   const navigate = useNavigate();
+
   const { isAuthenticated, logout, user } = useAuth();
 
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
@@ -44,13 +48,24 @@ const Navbar = () => {
     logout();
   };
 
+  // Menu controlado por grupo
   const menuItems = [
     { label: 'Dashboard', icon: <Dashboard />, path: '/home' },
-    { label: 'Funcionários', icon: <People />, path: '/funcionarios' },
+
+    ...(user?.grupo === USER_GROUPS.ADMINISTRADOR
+      ? [{ label: 'Funcionários', icon: <People />, path: '/funcionarios' }]
+      : []),
+
     { label: 'Clientes', icon: <Group />, path: '/clientes' },
+
     { label: 'Produtos', icon: <RestaurantMenu />, path: '/produtos' },
+
     { label: 'Comandas', icon: <Receipt />, path: '/comandas' },
-    { label: 'Caixa', icon: <PointOfSale />, path: '/caixa' },
+
+    ...(user?.grupo === USER_GROUPS.ADMINISTRADOR ||
+    user?.grupo === USER_GROUPS.CAIXA
+      ? [{ label: 'Caixa', icon: <PointOfSale />, path: '/caixa' }]
+      : []),
   ];
 
   const handleDrawerToggle = () => {
@@ -78,9 +93,17 @@ const Navbar = () => {
           <ListItem
             key={item.path}
             onClick={() => navigate(item.path)}
-            sx={{ '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.08)' } }}
+            sx={{
+              cursor: 'pointer',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              },
+            }}
           >
-            <ListItemIcon sx={{ color: 'inherit' }}>{item.icon}</ListItemIcon>
+            <ListItemIcon sx={{ color: 'inherit' }}>
+              {item.icon}
+            </ListItemIcon>
+
             <ListItemText primary={item.label} />
           </ListItem>
         ))}
@@ -91,12 +114,21 @@ const Navbar = () => {
       <List>
         <ListItem
           onClick={handleLogout}
-          sx={{ '&:hover': { backgroundColor: 'rgba(239, 68, 68, 0.08)' } }}
+          sx={{
+            cursor: 'pointer',
+            '&:hover': {
+              backgroundColor: 'rgba(239, 68, 68, 0.08)',
+            },
+          }}
         >
           <ListItemIcon sx={{ color: 'error.main' }}>
             <Logout />
           </ListItemIcon>
-          <ListItemText primary="Sair" sx={{ color: 'error.main' }} />
+
+          <ListItemText
+            primary="Sair"
+            sx={{ color: 'error.main' }}
+          />
         </ListItem>
       </List>
     </Box>
@@ -122,14 +154,23 @@ const Navbar = () => {
             }}
           >
             <RestaurantMenu
-              sx={{ color: '#f59e0b', fontSize: { xs: '1.5rem', sm: '2rem' } }}
+              sx={{
+                color: '#f59e0b',
+                fontSize: { xs: '1.5rem', sm: '2rem' },
+              }}
             />
 
-            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+            <Box
+              component="span"
+              sx={{ display: { xs: 'none', sm: 'inline' } }}
+            >
               Comandas do Zé
             </Box>
 
-            <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+            <Box
+              component="span"
+              sx={{ display: { xs: 'inline', sm: 'none' } }}
+            >
               Zé
             </Box>
           </Typography>
@@ -137,7 +178,14 @@ const Navbar = () => {
 
         {isAuthenticated && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1 }}>
+            {/* Desktop */}
+            <Box
+              sx={{
+                display: { xs: 'none', sm: 'flex' },
+                alignItems: 'center',
+                gap: 1,
+              }}
+            >
               {menuItems.map((item) => (
                 <Tooltip key={item.path} title={item.label} arrow>
                   <Button
@@ -164,12 +212,21 @@ const Navbar = () => {
                 </Tooltip>
               ))}
 
-              <IconButton color="inherit" onClick={handleProfileMenuOpen}>
+              <IconButton
+                color="inherit"
+                onClick={handleProfileMenuOpen}
+              >
                 <Avatar
                   src={perfil}
-                  sx={{ width: 32, height: 32, bgcolor: '#f59e0b' }}
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    bgcolor: '#f59e0b',
+                  }}
                 >
-                  {user?.nome ? user.nome.charAt(0).toUpperCase() : <AccountCircle />}
+                  {user?.nome
+                    ? user.nome.charAt(0).toUpperCase()
+                    : <AccountCircle />}
                 </Avatar>
               </IconButton>
 
@@ -177,27 +234,51 @@ const Navbar = () => {
                 <IconButton
                   color="inherit"
                   onClick={handleLogout}
-                  sx={{ '&:hover': { backgroundColor: 'rgba(239, 68, 68, 0.1)' } }}
+                  sx={{
+                    '&:hover': {
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    },
+                  }}
                 >
                   <Logout />
                 </IconButton>
               </Tooltip>
             </Box>
 
-            <Box sx={{ display: { xs: 'flex', sm: 'none' }, alignItems: 'center', gap: 1 }}>
-              <IconButton color="inherit" onClick={handleProfileMenuOpen}>
+            {/* Mobile */}
+            <Box
+              sx={{
+                display: { xs: 'flex', sm: 'none' },
+                alignItems: 'center',
+                gap: 1,
+              }}
+            >
+              <IconButton
+                color="inherit"
+                onClick={handleProfileMenuOpen}
+              >
                 <Avatar
                   src={perfil}
-                  sx={{ width: 32, height: 32, bgcolor: '#f59e0b' }}
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    bgcolor: '#f59e0b',
+                  }}
                 >
-                  {user?.nome ? user.nome.charAt(0).toUpperCase() : <AccountCircle />}
+                  {user?.nome
+                    ? user.nome.charAt(0).toUpperCase()
+                    : <AccountCircle />}
                 </Avatar>
               </IconButton>
 
               <IconButton
                 color="inherit"
                 onClick={handleDrawerToggle}
-                sx={{ '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)' } }}
+                sx={{
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  },
+                }}
               >
                 <MenuIcon />
               </IconButton>
@@ -224,7 +305,10 @@ const Navbar = () => {
         {drawer}
       </Drawer>
 
-      <UserProfile anchorEl={profileAnchorEl} onClose={handleProfileMenuClose} />
+      <UserProfile
+        anchorEl={profileAnchorEl}
+        onClose={handleProfileMenuClose}
+      />
     </AppBar>
   );
 };
