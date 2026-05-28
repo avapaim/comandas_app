@@ -6,21 +6,25 @@ import RestrictedRoute from "./RestrictedRoute";
 
 const Dashboard = lazy(() => import("../pages/Dashboard"));
 
-// códigos omitidos – somente os fragmentos relacionados ao Produto
+// Produtos
 const ProdutoList = lazy(() => import("../pages/ProdutoList"));
 const ProdutoForm = lazy(() => import("../pages/ProdutoForm"));
-
-// fragmento de código, contendo somente a rota para abrir a pesquisa publica de produto
 const ProdutoListPublic = lazy(() => import("../pages/ProdutoListPublic"));
 
+// Funcionários
 const FuncionarioList = lazy(() => import("../pages/FuncionarioList"));
 const FuncionarioForm = lazy(() => import("../pages/FuncionarioForm"));
 
+// Clientes
 const ClienteList = lazy(() => import("../pages/ClienteList"));
 const ClienteForm = lazy(() => import("../pages/ClienteForm"));
 
+// Comandas
+const ComandaList = lazy(() => import("../pages/ComandaList"));
+const ComandaForm = lazy(() => import("../pages/ComandaForm"));
+const ComandaConsumoForm = lazy(() => import("../pages/ComandaConsumoForm"));
+
 const Caixa = lazy(() => import("../pages/Caixa"));
-const Comandas = lazy(() => import("../pages/Comandas"));
 const Perfil = lazy(() => import("../pages/Perfil"));
 
 const LoginForm = lazy(() => import("../components/forms/LoginForm"));
@@ -34,7 +38,7 @@ const AppRoutes = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* Rotas públicas - sem necessidade de autenticação */}
+        {/* Rotas públicas */}
         <Route path="/produtos/publica" element={<ProdutoListPublic />} />
 
         <Route
@@ -46,7 +50,7 @@ const AppRoutes = () => {
           }
         />
 
-        {/* Rotas protegidas - somente se estiver logado */}
+        {/* Dashboard */}
         <Route
           path="/home"
           element={
@@ -56,6 +60,7 @@ const AppRoutes = () => {
           }
         />
 
+        {/* Produtos */}
         <Route
           path="/produtos"
           element={
@@ -74,7 +79,6 @@ const AppRoutes = () => {
           }
         />
 
-        {/* Rota para editar ou visualizar com opr {view ou edit} e id dinâmico */}
         <Route
           path="/produto/:opr/:id"
           element={
@@ -84,6 +88,7 @@ const AppRoutes = () => {
           }
         />
 
+        {/* Funcionários */}
         <Route
           path="/funcionarios"
           element={
@@ -101,14 +106,17 @@ const AppRoutes = () => {
             </PrivateRoute>
           }
         />
+
         <Route
           path="/funcionario/:opr/:id"
           element={
             <PrivateRoute allowedGroups={[1]}>
-               <FuncionarioForm />
+              <FuncionarioForm />
             </PrivateRoute>
           }
         />
+
+        {/* Clientes */}
         <Route
           path="/clientes"
           element={
@@ -126,14 +134,54 @@ const AppRoutes = () => {
             </PrivateRoute>
           }
         />
+
         <Route
           path="/cliente/:opr/:id"
           element={
             <PrivateRoute>
               <ClienteForm />
-           </PrivateRoute>
-           }
+            </PrivateRoute>
+          }
         />
+
+        {/* Comandas */}
+        <Route
+          path="/comandas"
+          element={
+            <PrivateRoute>
+              <ComandaList />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/comanda"
+          element={
+            <PrivateRoute>
+              <ComandaForm />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/comanda/:opr/:id"
+          element={
+            <PrivateRoute>
+              <ComandaForm />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/comanda/consumo/:id"
+          element={
+            <PrivateRoute>
+              <ComandaConsumoForm />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Caixa */}
         <Route
           path="/caixa"
           element={
@@ -143,15 +191,7 @@ const AppRoutes = () => {
           }
         />
 
-        <Route
-          path="/comandas"
-          element={
-            <PrivateRoute>
-              <Comandas />
-            </PrivateRoute>
-          }
-        />
-
+        {/* Perfil */}
         <Route
           path="/perfil"
           element={

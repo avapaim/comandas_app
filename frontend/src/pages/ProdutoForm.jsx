@@ -14,14 +14,15 @@ import PageLayout from "../components/common/PageLayout";
 import { useValidationRules } from "../hooks/useValidationRules";
 import { produtoService } from "../services/produtoService";
 import showSnackbar from "../utils/snackbar";
+import { useAuth } from "../context/AuthContext";
+import { USER_GROUPS } from "../constants/userGroups";
 
-// Definição do componente ProdutoForm
 const ProdutoForm = () => {
-  // Hooks de navegação e parâmetros
   const { id, opr } = useParams();
   const navigate = useNavigate();
 
-  // Hook de formulário
+  const { user } = useAuth();
+
   const {
     control,
     handleSubmit,
@@ -29,13 +30,11 @@ const ProdutoForm = () => {
     reset,
   } = useForm();
 
-  // Estados do componente
   const [foto, setFoto] = useState(null);
   const [fotoPreview, setFotoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
-  // Configurações e validações
   const validationRules = useValidationRules();
   const isReadOnly = opr === "view";
 
@@ -46,7 +45,6 @@ const ProdutoForm = () => {
         ? `Editar Produto: ${id}`
         : "Novo Produto";
 
-  // Funções de manipulação de imagem
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
 
@@ -123,17 +121,14 @@ const ProdutoForm = () => {
     });
   };
 
-  // Funções de navegação
   const handleCancel = () => {
     navigate("/produtos");
   };
 
-  // Função de envio do formulário
   const onSubmit = async (data) => {
     try {
       setLoading(true);
 
-      // Processa foto apenas se houver arquivo novo
       if (foto instanceof File) {
         try {
           const base64 = await fileToBase64(foto);
@@ -149,7 +144,6 @@ const ProdutoForm = () => {
       let retorno;
 
       if (id) {
-        // Utiliza dirtyFields para extrair apenas campos alterados
         const changedData = {};
 
         Object.keys(dirtyFields).forEach((key) => {
@@ -158,7 +152,6 @@ const ProdutoForm = () => {
           }
         });
 
-        // Verificar se foi carregada nova foto e adicionar ao objeto de alterações
         if (foto instanceof File) {
           changedData.foto = data.foto;
         }
@@ -190,8 +183,17 @@ const ProdutoForm = () => {
     }
   };
 
-  // Efeito para carregar dados do produto
   useEffect(() => {
+    if (opr !== "view" && user?.grupo !== USER_GROUPS.ADMINISTRADOR) {
+      showSnackbar(
+        "Acesso negado: Apenas administradores podem cadastrar ou editar produtos.",
+        "warning"
+      );
+
+      navigate("/produtos");
+      return;
+    }
+
     const loadProduto = async () => {
       if (id) {
         try {
@@ -217,9 +219,8 @@ const ProdutoForm = () => {
     };
 
     loadProduto();
-  }, [id, navigate, reset]);
+  }, [id, opr, user, navigate, reset]);
 
-  // Renderiza o formulário
   return (
     <PageLayout title={title}>
       {loadingData ? (
@@ -296,7 +297,6 @@ const ProdutoForm = () => {
             )}
           />
 
-          {/* Campo de upload de imagem */}
           <Box sx={{ mt: 2 }}>
             <input
               id="foto-upload"
@@ -320,7 +320,6 @@ const ProdutoForm = () => {
             </label>
           </Box>
 
-          {/* Preview da imagem selecionada */}
           {fotoPreview ? (
             <Box sx={{ mt: 2 }}>
               <img

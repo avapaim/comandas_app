@@ -24,11 +24,16 @@ import Pagination from "../components/common/Pagination";
 import { produtoService } from "../services/produtoService";
 import showSnackbar from "../utils/snackbar";
 import showConfirm from "../utils/confirm";
+import { useAuth } from "../context/AuthContext";
+import { USER_GROUPS } from "../constants/userGroups";
 
 // Definição do componente ProdutoList
 function ProdutoList() {
   // Hook de navegação
   const navigate = useNavigate();
+
+  // Hook de autenticação
+  const { user } = useAuth();
 
   // Estados do componente
   const [produtos, setProdutos] = useState([]);
@@ -112,17 +117,18 @@ function ProdutoList() {
     }).format(value);
 
   // Configuração de ações da página
-  const actions = (
-    <Button
-      variant="contained"
-      color="primary"
-      onClick={() => navigate("/produto")}
-      startIcon={<FiberNew />}
-      sx={{ fontWeight: 600, px: 2, py: 1 }}
-    >
-      Novo
-    </Button>
-  );
+  const actions =
+    user?.grupo === USER_GROUPS.ADMINISTRADOR ? (
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => navigate("/produto")}
+        startIcon={<FiberNew />}
+        sx={{ fontWeight: 600, px: 2, py: 1 }}
+      >
+        Novo
+      </Button>
+    ) : null;
 
   // Efeito para carregar produtos
   useEffect(() => {
@@ -163,8 +169,16 @@ function ProdutoList() {
       renderCell: (params) => (
         <ActionButtons
           onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          onEdit={
+            user?.grupo === USER_GROUPS.ADMINISTRADOR
+              ? handleEdit
+              : null
+          }
+          onDelete={
+            user?.grupo === USER_GROUPS.ADMINISTRADOR
+              ? handleDelete
+              : null
+          }
           item={params.row || {}}
         />
       ),
@@ -269,8 +283,16 @@ function ProdutoList() {
             <TableCell key={index}>
               <ActionButtons
                 onView={handleView}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
+                onEdit={
+                  user?.grupo === USER_GROUPS.ADMINISTRADOR
+                    ? handleEdit
+                    : null
+                }
+                onDelete={
+                  user?.grupo === USER_GROUPS.ADMINISTRADOR
+                    ? handleDelete
+                    : null
+                }
                 item={produto}
               />
             </TableCell>
@@ -388,25 +410,30 @@ function ProdutoList() {
           <ActionButtons
             item={produto}
             onView={handleView}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
+            onEdit={
+              user?.grupo === USER_GROUPS.ADMINISTRADOR
+                ? handleEdit
+                : null
+            }
+            onDelete={
+              user?.grupo === USER_GROUPS.ADMINISTRADOR
+                ? handleDelete
+                : null
+            }
           />
         </Box>
       </CardContent>
     </Card>
   );
 
-  // Renderização responsiva: desktop (tabela) e mobile (cards)
   return (
     <PageLayout title="Produtos" actions={actions}>
-      {/* Componente de Filtros */}
       <ProdutoFilters
         onFilter={handleFilter}
         onClear={handleClearFilters}
         filters={filters}
       />
 
-      {/* Tabela Desktop */}
       <Box sx={{ display: { xs: "none", md: "block" } }}>
         <TableContainer component={Paper}>
           <Table>
@@ -427,12 +454,10 @@ function ProdutoList() {
         </TableContainer>
       </Box>
 
-      {/* Cards Mobile */}
       <Box sx={{ display: { xs: "block", md: "none" } }}>
         {produtos.map((produto) => renderMobileCard(produto))}
       </Box>
 
-      {/* Componente de Paginação */}
       <Pagination
         currentPage={pagination.currentPage}
         itemsPerPage={pagination.limit}
